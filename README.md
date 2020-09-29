@@ -47,14 +47,14 @@ DAG 2:
   2. Add steps to EMR. The steps are read from a json file (airflow/dags/scripts/emr/process_log_file_emr.json). There are 3 steps in EMR
       a. Distributed copy the log files from S3 (s3://{log_bucket}//raw_logs//{execution_date}) to EMR location /logs
       b. Load the pyspark script from S3 (s3://{scripts_bucket}//spark/transform_log_data_for_analytics.py) and execute the script of raw logs data. Once the script is executed, the logs are written in parque format to EMR location /output.
-      c. Distributed unload the processed files from /output to S3 (s3://{log_bucket}//processed_logs//{execution_date})
+      c. Distributed unload the processed files from /output to S3 (s3://{log_bucket}//processed_logs//{execution_date}) in parquet format
   3. EMR step senor task. This task is to make sure that all the steps in EMR are working correctly.
   4. After all the EMR steps are successfully run, the EMR cluster is terminated.
   5. The processed logs are copied in a distributed fashion from S3 (s3://{log_bucket}//processed_logs//{execution_date}) to Redshift table.
   
   
  ## Reasons driving Architecture Decision:
-  1. The logs can grow significantly large as number of vehicles and trips increase over time. Hence, Amazon S3 and Amazon Redshift are chosen as they are both horizontally scalable.
+  1. The logs can grow significantly large as number of vehicles and trips increase over time. Hence, Amazon S3 and Amazon Redshift are chosen as they are both horizontally scalable and Reshift is designed for faster reads and writes.
   2. Amazon Redshift provides an option to store the table values in sorted format. The log files are sorted on compound kye (function_name, start_time). Doing  this, whenever the data scientists 
   perform any aggreagte function, only the nodes containing the specific function name are read so that queries are fast and performance is high. 
   3. Sorting by the second column start_time enables data scientists to query the time taken a given function across time and the performance is high for these queries for the same reason mentioned above.
@@ -62,6 +62,10 @@ DAG 2:
   5. With respect to optimizations on memory, the spark script has a series of window functions that divide the data across partitions. This is helpful where large log files are split across multiple nodes through these partitions by the driver and the executor performs operations within the node for the partition and results are sent back to master node for aggregating the values.
   6. Apache Airflow is chosen given the flexibility and ease that it provides with scheduling the jobs as well as providing prebuilt operators to leverage common ETL tasks. 
   7. Backfilling: DAG 2 in the architecture is scheduled to run daily. To backfill the logs for previous dates, one has to set the start_date in default_parameters to the data one wants to process the logs from and the dag automatically runs for all the previous days until the current day. If one needs to process the logs over a specified date range, set the paramters  start_date and end_date in default parameters and all the dates that fall under this range are calculated.
+  
+  8. Amazon Redshift can be easily integrated with BI tools like Tableau, Looker etc which enables advanced analytics easily.
+  9. All the AWS Services used (S3, EMR, Redshift) are self managed and hence very low maintenance required for maintenance. Also, EMR is configured through Airflow so that EMR is only active during the run time and it is terminated immediately after the job is executed and hence cost effective.
+  10. Amazon Redshift contains replicas for nodes and hence data is available most of the times.
   
   
 ### Deployment
@@ -82,5 +86,11 @@ DAG 2:
 10. Move the toggle on the two dags from Off to On and the dags begin running.
 
 
+### Next Steps:
+1. Create a Data Quality Operator to check if the data has been loaded to Redshift table or node
+2. Add an additional task to run Vaccuum operation on Redshift tables once the data is uploaded to Redshift so that the new values appended are stored in sorted ordder.
+
+## Alternative Design Considerations
+1. Once the data is reasonaly large(Terabytes of data inside Redshift), if the data is evenly distributed across all the functions, then we can alter the redshift table to be distributed by the funciton name. This way, a node will have only the data contained by a particular function and this helps improve the performance of queries(for the given usecase) on top of this data.
 
 
