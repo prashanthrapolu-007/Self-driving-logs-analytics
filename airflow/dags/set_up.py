@@ -10,7 +10,7 @@ from helpers import SQLQueries
 default_args = {
     "owner": "Prashanth",
     "depends_on_past": False,
-    "start_date": datetime(2020, 9, 25),
+    "start_date": datetime(2020, 1, 1),
     "email": ['etl_job_owner@uber.com'],
     "email_on_failure": False,
     "email_on_retry": False,

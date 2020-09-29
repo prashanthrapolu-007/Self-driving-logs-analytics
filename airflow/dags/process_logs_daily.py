@@ -7,7 +7,6 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.emr_create_job_flow_operator import EmrCreateJobFlowOperator
 from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTerminateJobFlowOperator
 from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
-from airflow.operators.s3_to_redshift_operator import S3ToRedshiftTransfer
 from operators import S3ToRedshiftOperator
 from operators import DynamicEMRStepsOperator
 
@@ -15,7 +14,7 @@ from operators import DynamicEMRStepsOperator
 default_args = {
     "owner": "Prashanth",
     "depends_on_past": False,
-    "start_date": datetime(2020, 9, 27),
+    "start_date": datetime(2020, 1, 1),
     "email": ['etl_job_owner@uber.com'],
     "email_on_failure": False,
     "email_on_retry": False,
@@ -32,7 +31,7 @@ JOB_FLOW_OVERRIDES = {
     'Name': 'Uber-log-analytics'
 }
 
-with DAG('process_and_load_log_data_into_redshift', default_args=default_args, schedule_interval='@once',
+with DAG('process_and_load_log_data_into_redshift', default_args=default_args, schedule_interval='@daily',
          max_active_runs=1) as dag:
 
     start_task = DummyOperator(
