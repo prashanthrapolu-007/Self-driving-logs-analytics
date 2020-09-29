@@ -91,6 +91,7 @@ DAG 2:
 2. Add an additional task to run Vaccuum operation on Redshift tables once the data is uploaded to Redshift so that the new values appended are stored in sorted ordder.
 
 ## Alternative Design Considerations
-1. Once the data is reasonaly large(Terabytes of data inside Redshift), if the data is evenly distributed across all the functions, then we can alter the redshift table to be distributed by the funciton name. This way, a node will have only the data contained by a particular function and this helps improve the performance of queries(for the given usecase) on top of this data.
+1. Once the data is reasonaly large(Terabytes of data inside Redshift), if the data is evenly distributed across all the functions, then we can alter the redshift table to have Key Based Distribution Style where the dist key is function name.
+This way, a node will have only the data contained by a particular function and this helps improve the performance of queries(for the given usecase) on top of this data.
 
 
