@@ -16,6 +16,7 @@ steps involved and design considerations are clearly explained below.
 ### Assumptions
 1. It is assumed that all the log files collected every day are stored in an S3 bucket dedicated to logs in the following format.
  Example: All files collected on January 1st 2020 are stored in the location s3:://{logs_bucket}//raw_logs//20200101
+2. It is also assumed that one has already set up an AWS account, Initialized redshift cluster and has S3 with two buckets, one to store log files and the other to store scripts
 
 
 ### Data Model
@@ -52,7 +53,7 @@ DAG 2:
   5. The processed logs are copied in a distributed fashion from S3 (s3://{log_bucket}//processed_logs//{execution_date}) to Redshift table.
   
   
-  ## Reasons driving Architecture Decision:
+ ## Reasons driving Architecture Decision:
   1. The logs can grow significantly large as number of vehicles and trips increase over time. Hence, Amazon S3 and Amazon Redshift are chosen as they are both horizontally scalable.
   2. Amazon Redshift provides an option to store the table values in sorted format. The log files are sorted on compound kye (function_name, start_time). Doing  this, whenever the data scientists 
   perform any aggreagte function, only the nodes containing the specific function name are read so that queries are fast and performance is high. 
@@ -62,7 +63,23 @@ DAG 2:
   6. Apache Airflow is chosen given the flexibility and ease that it provides with scheduling the jobs as well as providing prebuilt operators to leverage common ETL tasks. 
   7. Backfilling: DAG 2 in the architecture is scheduled to run daily. To backfill the logs for previous dates, one has to set the start_date in default_parameters to the data one wants to process the logs from and the dag automatically runs for all the previous days until the current day. If one needs to process the logs over a specified date range, set the paramters  start_date and end_date in default parameters and all the dates that fall under this range are calculated.
   
-
+  
+### Deployment
+1. git clone the project into a folder
+2. Set up env variables 
+   a. echo "AIRFLOW_HOME=$PWD/airflow/dags" >> .env
+   b. echo "s3_access_key_id=<your_s3_access_key_id>" >> .env
+   c. echo "s3_secret_access_key=<your_s3_secret_access_key>" >> .env
+   d. echo "region=<us-region_redshift_cluster_resides_in>" >> .env
+   Note: .env already has a few environment variables like scripts_bucket, logs_bucket, redshift_region. Please change based on your AWS account
+3. pipenv shell
+4. pip install -r requirements.tx
+5. airflow initdb
+6. airflow webserver -p 8080
+7. airflow scheduler(In a new terminal)
+8. open http://0.0.0.0:8080/admin/ in your webbrowser and navigate to Admin/Connections
+9. Add default connections for Redshift(redshift_conn), AWS(aws_default), and EMR(emr_default)
+10. Move the toggle on the two dags from Off to On and the dags begin running.
 
 
 
