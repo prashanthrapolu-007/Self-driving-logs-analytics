@@ -1,4 +1,4 @@
-# Uber-self-driving-logs-analytics
+# Self-driving-logs-analytics
 In this project, an entire end to end architecture is created to read log files from S3, process the logs collected and load them to Redshift Data Warehouse. The
 steps involved and design considerations are clearly explained below.
 
